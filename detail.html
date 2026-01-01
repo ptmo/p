@@ -385,6 +385,8 @@ Koleksi Wayang Kulit
             <div class="silsilah-row"><span style="color:#666">Ibu:</span><span style="font-weight:bold" id="displayIbu">-</span></div>
             <div class="silsilah-row"><span style="color:#666">Pusaka:</span><span style="font-weight:bold" id="displayPusaka">-</span></div>
         </div>
+    </div>
+</div>
 
         <div class="social-section">
             
@@ -557,17 +559,26 @@ Koleksi Wayang Kulit
         try {
             const provider = new ethers.providers.JsonRpcProvider(BASE_SEPOLIA_RPC);
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+            
+            // 1. Ambil URI
             const uri = await contract.tokenURI(id);
             const httpUri = uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+            
+            // 2. Fetch Metadata
             const response = await axios.get(httpUri);
             const meta = response.data;
+            
+            // 3. Proses Gambar
             const rawImgUrl = meta.image.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
             const hdImageUrl = `https://wsrv.nl/?url=${encodeURIComponent(rawImgUrl)}&w=1200&q=95&output=webp`;
+            
+            // 4. Helper Atribut (Case Insensitive agar lebih aman)
             const getAttr = (k) => {
-                const f = meta.attributes.find(a => a.trait_type === k);
+                const f = meta.attributes.find(a => a.trait_type.toLowerCase() === k.toLowerCase());
                 return f ? f.value : "-";
             };
 
+            // 5. Render ke HTML
             document.getElementById("displayId").innerText = id;
             
             const imgEl = document.getElementById("displayImg");
@@ -576,22 +587,30 @@ Koleksi Wayang Kulit
             imgEl.onload = () => { imgEl.style.opacity = 1; imgEl.style.transition = "opacity 0.5s"; };
 
             document.getElementById("displayName").innerText = meta.name;
-            document.getElementById("displayGaya").innerText = getAttr("Gaya");
-            document.getElementById("displayDesc").innerText = meta.description;
             
+            // Bersihkan Deskripsi dari tag [Detail Wayang] jika ada
+            let cleanDesc = meta.description.split("[Detail Wayang]")[0];
+            document.getElementById("displayDesc").innerText = cleanDesc;
+            
+            document.getElementById("displayGaya").innerText = getAttr("Gaya");
             document.getElementById("displayGolongan").innerText = getAttr("Golongan");
             document.getElementById("displayWanda").innerText = getAttr("Wanda");
-            document.getElementById("displayKulit").innerText = getAttr("Material Kulit");
-            document.getElementById("displayGapit").innerText = getAttr("Gapit");
+            
+            // Perbaikan Key sesuai Upload sebelumnya ("Material Kulit" atau "Material")
+            document.getElementById("displayKulit").innerText = getAttr("Material Kulit") !== "-" ? getAttr("Material Kulit") : getAttr("Material");
+            
+            document.getElementById("displayGapit").innerText = getAttr("Gapit"); // Optional
             document.getElementById("displayPenatah").innerText = getAttr("Penatah");
             document.getElementById("displayPenyungging").innerText = getAttr("Penyungging");
-            document.getElementById("displayTahun").innerText = getAttr("Tahun Pembuatan");
+            
+            // PERBAIKAN: Di upload kita pakai "Tahun", bukan "Tahun Pembuatan"
+            document.getElementById("displayTahun").innerText = getAttr("Tahun"); 
             document.getElementById("displayKolektor").innerText = getAttr("Kolektor");
             
             document.getElementById("displayNegara").innerText = getAttr("Negara");
             document.getElementById("displayAyah").innerText = getAttr("Ayah");
             document.getElementById("displayIbu").innerText = getAttr("Ibu");
-            document.getElementById("displayPusaka").innerText = getAttr("Pusaka") || "-";
+            document.getElementById("displayPusaka").innerText = getAttr("Pusaka");
 
             document.getElementById("loading").style.display = "none";
             document.getElementById("content").style.display = "flex";
